@@ -15,6 +15,6 @@ public class LinterEngine {
      */
     public String analyse(String input) {
         // Implement the logic for analyzing code here
-        return "Analyzing code...";
+        return input;
     }
 }
