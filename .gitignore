@@ -1,2 +1,8 @@
 ### Ignore all target files from the project root
-**/target/     
+**/target/
+
+### ignore the .idea folder
+.idea/
+
+### Ignore all .iml files
+*.iml
