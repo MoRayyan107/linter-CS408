@@ -1,0 +1,2 @@
+### Ignore all target files from the project root
+**/target/     
