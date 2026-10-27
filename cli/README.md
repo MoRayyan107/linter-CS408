@@ -8,7 +8,7 @@ Run the following commands from the root folder (`linter`).
 
 First, compile the code:
 ```Bash
-mvn clean install
+mvn clean install  
 ```
 
 Then, run the CLI:
