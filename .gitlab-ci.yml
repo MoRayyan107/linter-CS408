@@ -1,0 +1,26 @@
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^dev\/.*$/)'
+    - when: never
+
+stages:
+  - test
+  - secret_detection
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  key: maven
+  paths:
+    - .m2/repository/
+
+maven-test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - mvn --batch-mode --no-transfer-progress clean verify

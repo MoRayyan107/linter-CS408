@@ -6,3 +6,7 @@
 
 ### Ignore all .iml files
 *.iml
+
+
+## do not include the copilot instructions
+copilot-instructions.md
