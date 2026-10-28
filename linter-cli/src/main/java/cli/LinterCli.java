@@ -12,8 +12,6 @@ import java.nio.file.Paths;
  */
 public class LinterCli {
 
-
-
   public static void main(String[] args) {
     // get the file based on the struct "java -jar linter-cli.jar Example.java"
     if (args.length == 0) {

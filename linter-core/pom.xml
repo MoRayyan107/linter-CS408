@@ -12,6 +12,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>core</artifactId>
+    <artifactId>linter-core</artifactId>
 
 </project>

@@ -12,12 +12,12 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>cli</artifactId>
+    <artifactId>linter-cli</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>io.github.rayyan</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>linter-core</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

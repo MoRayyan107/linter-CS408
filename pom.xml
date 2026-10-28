@@ -11,9 +11,9 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>core</module>
-        <module>cli</module>
-        <module>web</module>
+        <module>linter-core</module>
+        <module>linter-cli</module>
+        <module>linter-web</module>
     </modules>
 
     <properties>
