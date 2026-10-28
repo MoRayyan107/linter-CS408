@@ -37,7 +37,7 @@ public class Violation {
 
     @Override
     public String toString() {
-        return String.format("Violation [ruleId=%s, message=%s, severity=%s, line=%d, column=%d, suggestion=%s]",
+        return String.format("Violation [ruleId=%s, message=%s, severity=%s, line=%d, column=%d, suggestion=%s]\n",
             ruleId, message, severity, line, column, suggestion);
     }
 

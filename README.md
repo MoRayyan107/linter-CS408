@@ -14,11 +14,10 @@
 
 ```text
 .
-├── cli/       # Command-line interface
-├── core/      # Core linter functionality
-├── plugin/    # Plugin or editor integration
-├── web/       # Web interface
-└── pom.xml    # Maven project configuration
+├── linter-cli/   # Command-line interface
+├── linter-core/  # Core linter functionality
+├── linter-web/   # Web interface
+└── pom.xml       # Maven project configuration
 ```
 
 ## Requirements
@@ -37,7 +36,7 @@ mvn clean install
 ### Run the CLI
 
 ```bash
-mvn -pl cli exec:java "-Dexec.mainClass=cli.LinterCli"
+mvn -pl linter-cli exec:java "-Dexec.mainClass=cli.LinterCli" "-Dexec.args='linter-web/src/main/java/com/cs408/linter/LinterApplication.java'"
 ```
 
 ## Usage
