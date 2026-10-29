@@ -39,13 +39,13 @@ mvn clean install
 mvn -pl linter-cli exec:java "-Dexec.mainClass=cli.LinterCli" "-Dexec.args='linter-web/src/main/java/com/cs408/linter/LinterApplication.java'"
 ```
 
+For now, the CLI must be run through Maven after compiling the project. Once
+the executable JAR is ready, it will be run directly with `java -jar`.
+
 ## Usage
 
-<!-- Add command examples and explain the available arguments/options. -->
-
-```bash
- Usage will be update one the jar is fully ready
-```
+The CLI accepts one readable Java source file. Update the path in the Maven
+command above to analyse a different file.
 
 ## Configuration
 

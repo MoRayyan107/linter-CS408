@@ -29,15 +29,14 @@ public class LinterCli {
       // if file does not end with .java, print error and exit
       if (!path.toString().endsWith(".java")) {
         System.err.println("File is not a Java file: " + path);
-        System.exit(1);
+        return; // exit the program without killing the thread
       }
 
       // check if file exists, if not print error and exit
       if (!Files.exists(path)) {
         System.err.println("File not found: " + path);
-        System.exit(1);
+        return;
       }
-
 
       sourceCode = Files.readString(path);
 
@@ -46,9 +45,10 @@ public class LinterCli {
 
     } catch (Exception e) {
       System.err.println("Error checking file existence: " + e.getMessage());
-      System.exit(1);
+      return;
     }
     // Create an instance of the LinterEngine
+    // TODO: later make this loose coupled by using a factory pattern to create the LinterEngine
     LinterEngine linterEngine = new LinterEngine();
 
     // Call the run method of the LinterEngine to start the linter
