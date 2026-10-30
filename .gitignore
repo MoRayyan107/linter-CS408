@@ -10,3 +10,7 @@
 
 ## do not include the copilot instructions
 copilot-instructions.md
+
+## ignore the graphify
+graphify-out/
+.graphify_detect.json

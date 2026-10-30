@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.cs408</groupId>
-    <artifactId>linter</artifactId>
+    <artifactId>linter-web-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>linter</name>
+    <name>linter-web-backend</name>
     <description>linter</description>
     <url/>
     <licenses>

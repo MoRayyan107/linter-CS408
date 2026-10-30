@@ -13,7 +13,7 @@
     <modules>
         <module>linter-core</module>
         <module>linter-cli</module>
-        <module>linter-web</module>
+        <module>linter-web/backend</module>
     </modules>
 
     <properties>
