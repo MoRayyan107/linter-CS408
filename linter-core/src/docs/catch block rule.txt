@@ -1,0 +1,44 @@
+Rule: Empty catch block
+Status: Planned — not implemented
+
+Purpose:
+Find exceptions that are caught and silently ignored.
+
+Flag when:
+The catch body contains no statements and neither exception
+below applies.
+
+Do not flag when:
+- The exception variable is named exactly "ignore" or "ignored".
+- A comment directly above the catch explicitly explains
+  that ignoring the exception is intentional.
+
+A generic comment such as "TODO" does not qualify.
+
+Information needed from the parser:
+- Catch clauses and their bodies
+- Statements inside each body
+- Exception variable names
+- Comments and their positions
+- Line and column of the catch clause
+
+Output:
+A Violation containing the rule ID, message, severity,
+line, column and suggestion.
+
+Examples to test:
+- Empty body, variable named "e": flag.
+- Empty body, variable named "ignored": do not flag.
+- Empty body, variable named "ignore": do not flag.
+- Empty body with an intentional-ignore comment above: do not flag.
+- Empty body with only a TODO comment above: flag.
+- Body containing a logging statement: do not flag.
+
+Limitation:
+A variable name or comment indicates intent, but does not
+prove that ignoring the exception is safe.
+
+Still to decide:
+- Rule ID and severity
+- Exact comment wording recognised by the implementation
+- Whether an intentional-ignore comment inside the body also qualifies
