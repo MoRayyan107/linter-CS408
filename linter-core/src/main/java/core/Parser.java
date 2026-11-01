@@ -21,12 +21,13 @@ public class Parser {
 
     /**
      * Parses the given Java source code and returns a ParseResult containing the CompilationUnit (AST).
+     * this function returns a NON-NULL ParseResult<T> object.
      *
-     * @param fileDataInput The Java source code as a string.
+     * @param sourceCode The Java source code as a string.
      * @return A ParseResult containing the CompilationUnit (AST) or errors if parsing fails.
      */
-    public ParseResult<CompilationUnit> parse(String fileDataInput) {
-        return javaParser.parse(fileDataInput);
+    public ParseResult<CompilationUnit> parse(String sourceCode) {
+        return javaParser.parse(sourceCode);
     }
 
 }

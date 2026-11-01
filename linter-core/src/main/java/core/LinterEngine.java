@@ -5,6 +5,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.stmt.CatchClause;
 import enums.Severity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /***
@@ -13,9 +14,11 @@ import java.util.List;
 public class LinterEngine {
 
     private final Parser parser;
+    private final List<Violation> violations;
 
     public LinterEngine() {
         this.parser = new Parser();
+        this.violations = new ArrayList<>();
     }
 
     /**
@@ -23,44 +26,54 @@ public class LinterEngine {
      * @return A string describing the analysis.
      */
     public List<Violation> analyse(String input) {
-        // Implement the logic for analyzing code here
-        // For now, we will return a dummy list of violations
+        // returns a non-null object of type ParseResult<CompilationUnit> (AST)
+
         ParseResult<CompilationUnit> parsedRes = parser.parse(input);
 
-        // TODO: THIS IS A PART OF EXAMPLE THIS CODE WILL BE PUSHED FOR REF SNAPSHOT
-        // PRINTING THE JAVA SOURCE FILE, NOT AN AST, FOR DEBUGGING PURPOSES
-        if (parsedRes.isSuccessful() && parsedRes.getResult().isPresent()) {
-            // print the AST for debugging purposes
-            parsedRes.getResult().ifPresent(compilationUnit -> {
-                System.out.println("Parsed AST: " + compilationUnit.toString());
+        // check for catch clauses
+        checkCatchClauses(parsedRes);
 
-                var catchBlock = compilationUnit.findAll(CatchClause.class); // finds any ccatcch clases
+        return violations;
+    }
 
-                for (var catches : catchBlock) {
-
-                    if (!catches.getBody().getStatements().isEmpty()) {
-                        System.out.println("Catch block iis : " + catches.getBody().getStatements().toString());
-                    } else if (catches.getParameter().getNameAsString().equalsIgnoreCase("ignore") ||
-                            catches.getParameter().getNameAsString().equalsIgnoreCase("ignored"))
-                    {
-                        System.out.println("Catch block is ignored");
-                    }
-                    else {
-                        System.out.println("Potential empty-catch violation detected at line: " + catches.getBegin().map(pos -> pos.line).orElse(-1));
-                    }
-                }
-            });
-        } else {
-            // if any problem or issues occurred during parsing, print the problems
-            parsedRes.getProblems().forEach(problem -> {
-                System.err.println("Parsing problem: " + problem.getMessage());
-            });
+    private void checkCatchClauses(ParseResult<CompilationUnit> parsed_ast) {
+        // check if the result is successful
+        if (!parsed_ast.isSuccessful() || parsed_ast.getResult().isEmpty()) {
+            System.err.println("Parsing failed with problems: " + parsed_ast.getProblems());
         }
 
-        return List.of(
-            new Violation("RULE001", "This is a warning message.", Severity.WARNING, 10, 5, "Consider refactoring this code."),
-            new Violation("RULE002", "This is an error message.", Severity.ERROR, 20, 15, "This code is not valid."),
-            new Violation("RULE003", "This is an info message.", Severity.INFO, 30, 25, "This is just for your information.")
-        );
+        parsed_ast.getResult().ifPresent(ast -> {
+            // first get the name of the variable, and body of the catch clause
+            var catchClause = ast.findAll(CatchClause.class);
+
+            for (var catches : catchClause) {
+                String variableName = catches.getParameter().getNameAsString();
+
+                // ignore the whitespace and braces in the body of the catch clause
+                String body = catches.getBody().toString().replaceAll("[\\s{}]", "");
+
+                // first check if the variable is ignored
+                if (variableName.equalsIgnoreCase("ignore") || variableName.equalsIgnoreCase("ignored")) {
+                    // nO VIOLATIONS ACCCORDING TO THE RULE SET
+                    System.out.println("Catch clause variable is ignored, no violations found.");
+                }
+                else if (body.isEmpty()){
+                    // if the body is empty, then we have a violation
+                    Violation violation = new Violation(
+                            "CATCH_CLAUSE_EMPTY_BODY",
+                            "Catch clause has an empty body.",
+                            Severity.ERROR,
+                            catches.getBegin().map(p -> p.line).orElse(-1),
+                            catches.getBegin().map(p -> p.column).orElse(-1),
+                            "Add some code to the catch clause body."
+                    );
+                    violations.add(violation);
+                } else {
+                    // body exists and no variable is named as ignore, so no violations found
+                    System.out.println("Catch clause has a body and variable is not ignored, no violations found.");
+                }
+
+            }
+        });
     }
 }

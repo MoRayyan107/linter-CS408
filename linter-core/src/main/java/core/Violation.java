@@ -1,12 +1,15 @@
 package core;
 
 import enums.Severity;
+import lombok.Builder;
 
 /**
  * Violation class is where we will store any issues that the linter has found in the code
  * @author: Rayyan
  * @version: 0.1
  */
+
+@Builder
 public class Violation {
 
     private final String ruleId;
