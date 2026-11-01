@@ -14,32 +14,34 @@ import java.util.List;
 public class LinterEngine {
 
     private final Parser parser;
-    private final List<Violation> violations;
 
     public LinterEngine() {
         this.parser = new Parser();
-        this.violations = new ArrayList<>();
     }
 
     /**
-     * Analyzes the code and returns a string describing the analysis.
-     * @return A string describing the analysis.
+     * Analyzes the code and returns a list of violations found.
+     *
+     * @param input The Java source code as a string.
+     * @return list of violations found.
      */
     public List<Violation> analyse(String input) {
         // returns a non-null object of type ParseResult<CompilationUnit> (AST)
 
         ParseResult<CompilationUnit> parsedRes = parser.parse(input);
+        List<Violation> violations = new ArrayList<>();
 
         // check for catch clauses
-        checkCatchClauses(parsedRes);
+        checkCatchClauses(parsedRes, violations);
 
         return violations;
     }
 
-    private void checkCatchClauses(ParseResult<CompilationUnit> parsed_ast) {
+    private void checkCatchClauses(ParseResult<CompilationUnit> parsed_ast, List<Violation> violations) {
         // check if the result is successful
         if (!parsed_ast.isSuccessful() || parsed_ast.getResult().isEmpty()) {
             System.err.println("Parsing failed with problems: " + parsed_ast.getProblems());
+            return;
         }
 
         parsed_ast.getResult().ifPresent(ast -> {
@@ -48,21 +50,20 @@ public class LinterEngine {
 
             for (var catches : catchClause) {
                 String variableName = catches.getParameter().getNameAsString();
-
-                // ignore the whitespace and braces in the body of the catch clause
-                String body = catches.getBody().toString().replaceAll("[\\s{}]", "");
+                // true if the catch clause has a body, false if it is empty
+                boolean catchBody = catches.getBody().getStatements().isNonEmpty();
 
                 // first check if the variable is ignored
                 if (variableName.equalsIgnoreCase("ignore") || variableName.equalsIgnoreCase("ignored")) {
                     // nO VIOLATIONS ACCCORDING TO THE RULE SET
                     System.out.println("Catch clause variable is ignored, no violations found.");
                 }
-                else if (body.isEmpty()){
+                else if (!catchBody){
                     // if the body is empty, then we have a violation
                     Violation violation = Violation.buildViolation(
                             "CATCH_CLAUSE_EMPTY_BODY",
                             "Catch clause has an empty body.",
-                            Severity.ERROR,
+                            Severity.WARNING,
                             catches.getBegin().map(p -> p.line).orElse(-1),
                             catches.getBegin().map(p -> p.column).orElse(-1),
                             "Add some code to the catch clause body."

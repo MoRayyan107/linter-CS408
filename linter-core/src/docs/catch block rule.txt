@@ -1,44 +1,72 @@
+“Prototype checking logic implemented in LinterEngine; extraction into a separate rule is planned.”
+
 Rule: Empty catch block
-Status: Planned — not implemented
+Status: Implemented — validation in progress
 
 Purpose:
 Find exceptions that are caught and silently ignored.
 
 Flag when:
-The catch body contains no statements and neither exception
-below applies.
+The catch body contains no statements and the exception
+variable is neither "ignore" nor "ignored", compared
+case-insensitively.
 
 Do not flag when:
-- The exception variable is named exactly "ignore" or "ignored".
-- A comment directly above the catch explicitly explains
-  that ignoring the exception is intentional.
+- The exception variable is named "ignore" or "ignored",
+  regardless of capitalisation.
+- The catch body contains at least one statement.
 
-A generic comment such as "TODO" does not qualify.
+Comment handling:
+Comments do not suppress this rule.
+A body containing only comments still contains no statements.
 
 Information needed from the parser:
-- Catch clauses and their bodies
-- Statements inside each body
+- Catch clauses
+- Statements inside each catch body
 - Exception variable names
-- Comments and their positions
-- Line and column of the catch clause
+- Line and column of each catch clause
 
-Output:
-A Violation containing the rule ID, message, severity,
-line, column and suggestion.
+How the AST is inspected:
+1. Search the CompilationUnit for CatchClause nodes.
+2. Read each catch clause's exception variable name.
+3. Access its body and check whether its statement list is empty.
+4. Apply the rule conditions.
+5. Create a Violation for each matching catch clause.
 
-Examples to test:
-- Empty body, variable named "e": flag.
-- Empty body, variable named "ignored": do not flag.
-- Empty body, variable named "ignore": do not flag.
-- Empty body with an intentional-ignore comment above: do not flag.
-- Empty body with only a TODO comment above: flag.
-- Body containing a logging statement: do not flag.
+JavaParser performs the tree search through findAll().
+The rule then inspects each catch node returned.
 
-Limitation:
-A variable name or comment indicates intent, but does not
-prove that ignoring the exception is safe.
+Current output:
+- Rule ID: CATCH_CLAUSE_EMPTY_BODY
+- Message: Catch clause has an empty body.
+- Severity: WARNING
+- Location: Line and column where the catch clause begins
+- Suggestion: Handle the exception or explicitly indicate
+  intentional ignoring using the variable name "ignored".
 
-Still to decide:
-- Rule ID and severity
-- Exact comment wording recognised by the implementation
-- Whether an intentional-ignore comment inside the body also qualifies
+Examples to test:                                            Manual Test Result
+- Empty body, variable named "e": one violation.                    ✅
+- Whitespace-only body, variable named "e": one violation.          ✅
+- Empty body, variable named "ignored": no violation.               ✅
+- Empty body, variable named "ignore": no violation.                ✅
+- Empty body, variable named "IGNORE": no violation.                ✅
+- Comment-only body, variable named "e": one violation.             ✅
+- Body containing a logging statement: no violation.                ✅
+- Two empty catch bodies named "e": two violations.                 ✅
+- File containing no catch clauses: no violations.                  ✅
+
+Additional checks:
+- Analyse a violating file, then a clean file using the same
+  engine instance. The second result must contain no old findings.
+- Parsing failure must be reported and rule checking must stop.
+
+Limitations:
+- An ignored variable name indicates intent, but does not prove
+  that ignoring the exception is safe.
+- A nonempty body does not prove that the exception is handled
+  meaningfully. This rule only checks whether statements exist.
+
+Remaining work:
+- Run the examples and record actual results.
+- Add automated tests.
+- Confirm the final severity and suggestion wording.
