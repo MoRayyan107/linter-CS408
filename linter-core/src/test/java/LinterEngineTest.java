@@ -1,7 +1,10 @@
 import core.LinterEngine;
+import core.Violation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,6 +40,7 @@ class LinterEngineTest {
 
             // should have a violation since there's no "ignore" or "ignored" variable name and the catch block is empty
             assertEquals(1 ,violations.size());
+            assertEquals(5, violations.getFirst().getLine());
             assertEquals(VIOLATION_RULE_ID, violations.getFirst().getRuleId());
         }
 
@@ -78,16 +82,6 @@ class LinterEngineTest {
         }
 
         @Test
-        void test_LinterEngine_reportsOneViolationForCommentOnlyBodyWithNoIgnore() {
-            // Test case where the catch variable is not ignored and the catch block has only a comment
-            var violations = linterEngine.analyse(sourceCode);
-
-            // should have a violation since there's no "ignore" or "ignored" variable name and the catch block is effectively empty
-            assertEquals(1, violations.size());
-            assertEquals(VIOLATION_RULE_ID, violations.getFirst().getRuleId());
-        }
-
-        @Test
         void test_LinterEngine_reportsNoViolationForCatchWithBodyContainingCode() {
             // Test case where the catch variable is not ignored and the catch block has some code
             sourceCode = sourceCode.replace("// this is a comment (this will be updated each test)", "System.out.println(e.getMessage());");
@@ -121,6 +115,8 @@ class LinterEngineTest {
             assertEquals(2, violations.size());
             assertEquals(VIOLATION_RULE_ID, violations.get(0).getRuleId());
             assertEquals(VIOLATION_RULE_ID, violations.get(1).getRuleId());
+            assertEquals(List.of(5,7),
+                    violations.stream().map(Violation::getLine).sorted().toList());
         }
 
         @Test
