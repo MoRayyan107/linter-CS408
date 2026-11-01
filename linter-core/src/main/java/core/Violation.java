@@ -41,7 +41,18 @@ public class Violation {
     @Override
     public String toString() {
         return String.format("Violation [ruleId=%s, message=%s, severity=%s, line=%d, column=%d, suggestion=%s]\n",
-            ruleId, message, severity, line, column, suggestion);
+                ruleId, message, severity, line, column, suggestion);
+    }
+
+    public static Violation buildViolation(String ruleId, String message, Severity severity, int line, int column, String suggestion) {
+        return  Violation.builder()
+                .ruleId(ruleId)
+                .message(message)
+                .severity(severity)
+                .line(line)
+                .column(column)
+                .suggestion(suggestion)
+                .build();
     }
 
 }

@@ -59,7 +59,7 @@ public class LinterEngine {
                 }
                 else if (body.isEmpty()){
                     // if the body is empty, then we have a violation
-                    Violation violation = new Violation(
+                    Violation violation = Violation.buildViolation(
                             "CATCH_CLAUSE_EMPTY_BODY",
                             "Catch clause has an empty body.",
                             Severity.ERROR,
