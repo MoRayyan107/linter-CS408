@@ -1,2 +1,1 @@
-public class TestCases {
-}
+public class TestCases {}
