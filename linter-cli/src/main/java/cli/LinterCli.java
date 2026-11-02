@@ -1,14 +1,13 @@
 package cli;
 
 import core.LinterEngine;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /***
  * LinterCli, this class contains the main entry point for the command-line interface of the linter
- * 
+ *
  */
 public class LinterCli {
 
@@ -22,10 +21,10 @@ public class LinterCli {
     Path path = Paths.get(args[0]);
 
     // DEBUG: Print the path to the file being analyzed
-//    System.out.println("Analyzing file: " + path);
+    //    System.out.println("Analyzing file: " + path);
 
     String sourceCode = null;
-    try{
+    try {
       // if file does not end with .java, print error and exit
       if (!path.toString().endsWith(".java")) {
         System.err.println("File is not a Java file: " + path);
@@ -41,7 +40,8 @@ public class LinterCli {
       sourceCode = Files.readString(path);
 
       // DEBUG: Print the first 100 characters of the source code
-//      System.out.println("Source code (first 100 chars): " + sourceCode.substring(0, Math.min(100, sourceCode.length())));
+      //      System.out.println("Source code (first 100 chars): " + sourceCode.substring(0,
+      // Math.min(100, sourceCode.length())));
 
     } catch (Exception e) {
       System.err.println("Error checking file existence: " + e.getMessage());
@@ -54,5 +54,4 @@ public class LinterCli {
     // Call the run method of the LinterEngine to start the linter
     System.out.println(linterEngine.analyse(sourceCode));
   }
-
 }

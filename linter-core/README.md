@@ -76,6 +76,5 @@ mvn -pl linter-core clean install
 mvn -pl linter-core test
 ```
 
-The module targets Java 21. Lombok is used at compile time for the
-`Violation.builder()` factory and is configured as an annotation processor in
-the root Maven build.
+The module targets Java 21. Lombok is used by the rule logging code and is
+configured as an annotation processor in the root Maven build.

@@ -4,7 +4,6 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
 import core.rules.EmptyCatchRule;
 import core.rules.Rule;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,37 +12,40 @@ import java.util.List;
  */
 public class LinterEngine {
 
-    private final Parser parser;
-    private final Rule catchClauseRule;
+  private final Parser parser;
+  private final Rule catchClauseRule;
 
-    public LinterEngine() {
-        this.parser = new Parser();
-        this.catchClauseRule = new EmptyCatchRule();
+  public LinterEngine() {
+    this.parser = new Parser();
+    this.catchClauseRule = new EmptyCatchRule();
+  }
+
+  /**
+   * Analyzes the code and returns a list of violations found.
+   *
+   * @param input The Java source code as a string.
+   * @return list of violations found.
+   */
+  public List<Violation> analyse(String input) {
+    // returns a non-null object of type ParseResult<CompilationUnit> (AST)
+
+    ParseResult<CompilationUnit> parsedRes = parser.parse(input);
+    List<Violation> violations = new ArrayList<>();
+
+    // check if teh the parsed result is successful
+    if (!parsedRes.isSuccessful() || parsedRes.getResult().isEmpty()) {
+      System.err.println("Parsing failed with problems: " + parsedRes.getProblems());
+      return violations;
     }
 
-    /**
-     * Analyzes the code and returns a list of violations found.
-     *
-     * @param input The Java source code as a string.
-     * @return list of violations found.
-     */
-    public List<Violation> analyse(String input) {
-        // returns a non-null object of type ParseResult<CompilationUnit> (AST)
+    parsedRes
+        .getResult()
+        .ifPresent(
+            ast -> {
+              // call for catchClauses check
+              violations.addAll(catchClauseRule.check(ast));
+            });
 
-        ParseResult<CompilationUnit> parsedRes = parser.parse(input);
-        List<Violation> violations = new ArrayList<>();
-
-        // check if teh the parsed result is successful
-        if (!parsedRes.isSuccessful() || parsedRes.getResult().isEmpty()) {
-            System.err.println("Parsing failed with problems: " + parsedRes.getProblems());
-            return violations;
-        }
-
-        parsedRes.getResult().ifPresent(ast -> {
-            // call for catchClauses check
-            violations.addAll(catchClauseRule.check(ast));
-        });
-
-        return violations;
-    }
+    return violations;
+  }
 }
