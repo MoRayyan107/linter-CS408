@@ -1,7 +1,7 @@
 # linter-core
 
-`linter-core` contains the reusable Java source analysis engine used by the
-other linter modules. It accepts Java source code as a string, parses it into a
+`linter-core` contains the reusable Java source analysis engine currently used
+by the CLI. It accepts Java source code as a string, parses it into a
 JavaParser abstract syntax tree (AST), applies the configured rules, and
 returns the detected issues as `Violation` objects.
 
@@ -39,7 +39,7 @@ try {
 
 The reported violation includes the catch clause's line and column and
 suggests adding code to the catch body. Catch parameters named `ignore` or
-`ignored` are treated as intentionally ignored and do not produce this
+`ignored` (case-insensitive) are treated as intentionally ignored and do not produce this
 violation.
 
 ## Using the API
@@ -78,3 +78,19 @@ mvn -pl linter-core test
 
 The module targets Java 21. Lombok is used by the rule logging code and is
 configured as an annotation processor in the root Maven build.
+
+## Formatting and CI
+
+Run these commands from the repository root:
+
+```bash
+# Format this module's Java files
+mvn -pl linter-core spotless:apply
+
+# Build, run tests, and check formatting
+mvn -pl linter-core clean verify
+```
+
+The core module is included in the Java CI checks and CodeQL configuration.
+See the [main README](../README.md) for the full development workflow and
+the [CLI README](../linter-cli/README.md) to analyse a file from the command line.

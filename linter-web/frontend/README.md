@@ -1,16 +1,44 @@
-# React + Vite
+# Linter Web Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This module contains the React and Vite frontend scaffold. The current page is
+the starter interface and is not yet connected to a linting API.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Node.js 22 and npm, matching the frontend CI configuration.
 
-## React Compiler
+## Local development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+From the repository root:
 
-## Expanding the Oxlint configuration
+```bash
+cd linter-web/frontend
+npm ci
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Open the local URL printed by Vite. Application code lives in `src/`, with
+`src/App.jsx` defining the current page.
+
+## Available commands
+
+Run these commands from `linter-web/frontend` after installing dependencies:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Vite development server |
+| `npm run lint` | Run Oxlint |
+| `npm run build` | Generate the production build in `dist/` |
+| `npm run preview` | Preview the production build locally after building |
+
+No frontend test script is configured yet. Linting and a successful build do
+not replace tests of user behaviour.
+
+## Automated checks
+
+GitHub Actions runs lint and build as separate jobs using Node.js 22 and
+`npm ci`. The CodeQL workflow is configured to scan JavaScript/TypeScript for
+potential security issues.
+
+The root Maven build does not build this frontend. See the
+[main README](../../README.md) for the complete development workflow.

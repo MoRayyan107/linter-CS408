@@ -1,41 +1,51 @@
-# CLI
+# Linter CLI
 
-This folder contains the command-line interface for running the linter.
+The CLI reads one Java source file, passes its contents to `linter-core`, and
+prints the returned violations.
 
-## Running from Maven
+## Requirements
 
-Run the following commands from the root folder (`linter`).
+JDK 21 and Maven. Run the commands below from the repository root.
 
-First, compile the code:
-```Bash
-mvn clean install  
-```
+## Build and run
 
-Then, run the CLI:
-
-```Bash
-mvn -pl linter-cli exec:java "-Dexec.mainClass=cli.LinterCli"
-```
-
-The CLI prints the linter result for the input file. The result depends on the
-contents of the file provided.
-
-## Testing with a specific file
-
-### Pass case
-
-Use the path to an existing Java file as the input. The path can be relative
-or absolute.
-
-> **IMPORTANT:** The file path must be enclosed in single quotes (`' '`). The
-> file must also exist and be readable, otherwise the linter will fail.
+Install the Java modules locally so Maven can resolve the CLI's core dependency:
 
 ```bash
-mvn -pl linter-cli exec:java "-Dexec.mainClass=cli.LinterCli" -Dexec.args="'missing/Example.java'"
+mvn clean install
 ```
 
-### Fail cases
+Analyse an existing Java file:
 
 ```bash
-mvn -pl linter-cli exec:java "-Dexec.mainClass=cli.LinterCli" -Dexec.args="'linter-web/src/main/java/com/cs408/linter/LinterApplication.java'"
+mvn -pl linter-cli exec:java "-Dexec.mainClass=cli.LinterCli" "-Dexec.args='linter-web/backend/src/main/java/com/cs408/linter/LinterApplication.java'"
 ```
+
+Replace the example path with your own relative or absolute path. The file must
+exist, be readable, and have a `.java` extension. Keep paths containing spaces
+quoted inside `exec.args`, as shown above.
+
+## Output and limitations
+
+- The CLI prints the list of violations returned by the core engine.
+- An empty list means no rule violations were returned. Parse errors are printed
+  separately, so an empty list does not necessarily mean the input was valid.
+- The CLI handles a single file; it does not recursively scan directories.
+- Detected violations do not currently produce a dedicated failure exit code.
+  Do not use the process exit code alone as a lint quality gate.
+- The documented launch method uses Maven; an executable CLI JAR is not yet configured.
+
+See the [core README](../linter-core/README.md) for the current lint rules.
+
+## Development
+
+```bash
+# Build and test the CLI along with its required modules
+mvn -pl linter-cli -am clean verify
+
+# Format the CLI's Java files
+mvn -pl linter-cli spotless:apply
+```
+
+The CLI participates in the repository's Java CI checks and CodeQL configuration.
+See the [main README](../README.md) for the full workflow description.
