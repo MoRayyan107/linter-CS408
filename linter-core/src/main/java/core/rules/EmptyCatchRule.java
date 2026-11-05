@@ -27,21 +27,23 @@ public class EmptyCatchRule implements Rule {
       if (variableName.equalsIgnoreCase("ignore") || variableName.equalsIgnoreCase("ignored")) {
         // no violation is done
         log.info("Catch clause variable is ignored, no violations found.");
-      } else if (catchBodyIsEmpty) {
-        // if the body is empty, then we have a violation
-        Violation violation =
-            new Violation(
-                "CATCH_CLAUSE_EMPTY_BODY",
-                "Catch clause has an empty body.",
-                Severity.WARNING,
-                catches.getBegin().map(p -> p.line).orElse(-1),
-                catches.getBegin().map(p -> p.column).orElse(-1),
-                "Add some code to the catch clause body.");
-        violations.add(violation);
-      } else {
+        continue;
+      } else if (!catchBodyIsEmpty) {
         // body exists and no variable is named as ignore, so no violations found
         log.info("Catch clause has a body and variable is not ignored, no violations found.");
+        continue;
       }
+
+      // create a new Violation
+      Violation violation =
+              new Violation(
+                      "CATCH_CLAUSE_EMPTY_BODY",
+                      "Catch clause has an empty body.",
+                      Severity.WARNING,
+                      catches.getBegin().map(p -> p.line).orElse(-1),
+                      catches.getBegin().map(p -> p.column).orElse(-1),
+                      "Add some code to the catch clause body.");
+      violations.add(violation);
     }
     return violations;
   }
