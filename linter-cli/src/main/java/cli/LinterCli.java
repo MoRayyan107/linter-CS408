@@ -4,18 +4,45 @@ import core.LinterEngine;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 /***
  * LinterCli, this class contains the main entry point for the command-line interface of the linter
- *
  */
 public class LinterCli {
 
   public static void main(String[] args) {
-    // get the file based on the struct "java -jar linter-cli.jar Example.java"
+
+    if (args.length == 0) {
+      System.err.println("Not a Valid command, use --help for more information");
+      return; // exit the program without killing the thread
+    }
+
+    // if given is --help
+    if (args[0].equals("--help")) {
+      printHelpCommand();
+      return; // exit the program without killing the thread
+    }
+
+    // ccheck if the args have a java file or not
+    boolean hasJavaFile = Arrays.stream(args).anyMatch(arg -> arg.contains(".java"));
+    if (hasJavaFile) runEngine(args);
+  }
+
+  private static void printHelpCommand() {
+    String printHelp =
+        """
+        Usage: java -jar linter-cli.jar <file.java>
+        Options:
+          --help      Show this help message
+        """;
+    System.out.println(printHelp);
+  }
+
+  private static void runEngine(String[] args) {
     if (args.length == 0) {
       System.err.println("Usage: java -jar linter-cli.jar <file.java>");
-      System.exit(1);
+      return; // exit the program without killing the thread
     }
 
     Path path = Paths.get(args[0]);

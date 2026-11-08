@@ -15,6 +15,10 @@ public class EmptyCatchRule implements Rule {
   public List<Violation> check(CompilationUnit ast) {
     List<Violation> violations = new ArrayList<>();
 
+    return checkCatchClause(violations, ast);
+  }
+
+  private List<Violation> checkCatchClause(List<Violation> violations, CompilationUnit ast) {
     // first get the name of the variable, and body of the catch clause
     var catchClause = ast.findAll(CatchClause.class);
 
@@ -33,18 +37,19 @@ public class EmptyCatchRule implements Rule {
         log.info("Catch clause has a body and variable is not ignored, no violations found.");
         continue;
       }
-
       // create a new Violation
-      Violation violation =
-              new Violation(
-                      "CATCH_CLAUSE_EMPTY_BODY",
-                      "Catch clause has an empty body.",
-                      Severity.WARNING,
-                      catches.getBegin().map(p -> p.line).orElse(-1),
-                      catches.getBegin().map(p -> p.column).orElse(-1),
-                      "Add some code to the catch clause body.");
-      violations.add(violation);
+      violations.add(createCatchClauseViolation(catches));
     }
     return violations;
+  }
+
+  private Violation createCatchClauseViolation(CatchClause catches) {
+    return new Violation(
+        "CATCH_CLAUSE_EMPTY_BODY",
+        "Catch clause has an empty body.",
+        Severity.WARNING,
+        catches.getBegin().map(p -> p.line).orElse(-1),
+        catches.getBegin().map(p -> p.column).orElse(-1),
+        "Add some code to the catch clause body.");
   }
 }

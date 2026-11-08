@@ -2,7 +2,11 @@ package core;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 
 /**
  * Parser class is where we will parse the code and return a list of violations the parser converts
@@ -18,7 +22,11 @@ public class Parser {
   private final JavaParser javaParser;
 
   public Parser() {
-    this.javaParser = new JavaParser();
+    ParserConfiguration parserConfiguration = new ParserConfiguration();
+    parserConfiguration.setSymbolResolver(
+        new JavaSymbolSolver(new CombinedTypeSolver(new ReflectionTypeSolver())));
+
+    this.javaParser = new JavaParser(parserConfiguration);
   }
 
   /**
@@ -26,7 +34,8 @@ public class Parser {
    * (AST). this function returns a NON-NULL ParseResult<T> object.
    *
    * @param sourceCode The Java source code as a string.
-   * @return A ParseResult containing the CompilationUnit (AST) or errors if parsing fails.
+   * @return A {@code ParseResult<CompilationUnit>} containing the CompilationUnit (AST) or errors
+   *     if parsing fails.
    */
   public ParseResult<CompilationUnit> parse(String sourceCode) {
     return javaParser.parse(sourceCode);

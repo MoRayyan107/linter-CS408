@@ -2,8 +2,7 @@ package core;
 
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
-import core.rules.EmptyCatchRule;
-import core.rules.Rule;
+import core.rules.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,10 +13,12 @@ public class LinterEngine {
 
   private final Parser parser;
   private final Rule catchClauseRule;
+  private final Rule TransactionalSelfInvocationRule;
 
   public LinterEngine() {
     this.parser = new Parser();
     this.catchClauseRule = new EmptyCatchRule();
+    this.TransactionalSelfInvocationRule = new TransactionalSelfInvocationRule();
   }
 
   /**
@@ -44,6 +45,8 @@ public class LinterEngine {
             ast -> {
               // call for catchClauses check
               violations.addAll(catchClauseRule.check(ast));
+              // call for TransactionalSelfInvocationRule check
+              violations.addAll(TransactionalSelfInvocationRule.check(ast));
             });
 
     return violations;
