@@ -24,6 +24,9 @@ the analysis engine. IntelliJ IDEA integration is planned.
 | `plugin/` | Planned IntelliJ IDEA integration | [Plugin README](plugin/README.md) |
 | `.github/` | CI, CodeQL, and Dependabot configuration | [Workflows](.github/workflows) |
 
+## Project Architecture
+![System Architecture](docs/SystemArchitecture.png)
+
 ## Requirements
 
 - JDK 21, matching the Java version used in CI.

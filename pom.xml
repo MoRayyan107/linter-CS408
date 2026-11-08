@@ -47,7 +47,7 @@
         <!--- Parsing Dependencies -->
         <dependency>
             <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-core</artifactId>
+            <artifactId>javaparser-symbol-solver-core</artifactId>
             <version>3.28.2</version>
             <scope>compile</scope>
         </dependency>
