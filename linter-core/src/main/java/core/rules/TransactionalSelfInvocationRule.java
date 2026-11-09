@@ -1,7 +1,6 @@
 package core.rules;
 
-import static core.Constants.SUPPORTED_TRANSACTIONAL_ANNOTATION;
-import static core.Constants.SUPPORTED_TRANSACTIONAL_IMPORTS_ASTERISK;
+import static core.Constants.*;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
@@ -146,7 +145,7 @@ public class TransactionalSelfInvocationRule implements Rule {
 
   private Violation createSelfInvocationViolation(MethodCallExpr expr) {
     return new Violation(
-        "TRANSACTIONAL_SELF_INVOCATION",
+        TRANSACTIONAL_SELF_INVOCATION_RULE_ID,
         "Method call to a @Transactional method from within the same class.",
         enums.Severity.WARNING,
         expr.getBegin().map(p -> p.line).orElse(-1),

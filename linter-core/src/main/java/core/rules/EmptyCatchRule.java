@@ -1,5 +1,7 @@
 package core.rules;
 
+import static core.Constants.CATCH_CLAUSE_RULE_ID;
+
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.stmt.CatchClause;
 import core.Violation;
@@ -45,7 +47,7 @@ public class EmptyCatchRule implements Rule {
 
   private Violation createCatchClauseViolation(CatchClause catches) {
     return new Violation(
-        "CATCH_CLAUSE_EMPTY_BODY",
+        CATCH_CLAUSE_RULE_ID,
         "Catch clause has an empty body.",
         Severity.WARNING,
         catches.getBegin().map(p -> p.line).orElse(-1),
