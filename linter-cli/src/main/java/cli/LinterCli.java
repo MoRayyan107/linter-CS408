@@ -1,10 +1,12 @@
 package cli;
 
 import core.LinterEngine;
+import core.Violation;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 /***
  * LinterCli, this class contains the main entry point for the command-line interface of the linter
@@ -79,6 +81,8 @@ public class LinterCli {
     LinterEngine linterEngine = new LinterEngine();
 
     // Call the run method of the LinterEngine to start the linter
-    System.out.println(linterEngine.analyse(sourceCode));
+    List<Violation> violations = linterEngine.analyse(sourceCode);
+    System.out.println("Violations found: " + violations.size());
+    for (Violation violation : violations) System.out.println(violation.toString());
   }
 }

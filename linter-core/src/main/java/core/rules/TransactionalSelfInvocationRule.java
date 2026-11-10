@@ -6,6 +6,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
@@ -31,7 +32,6 @@ public class TransactionalSelfInvocationRule implements Rule {
 
     // get all the method calls and imports from the AST
     List<MethodCallExpr> methodCalls = ast.findAll(MethodCallExpr.class);
-    List<ImportDeclaration> imports = ast.findAll(ImportDeclaration.class);
 
     for (MethodCallExpr calls : methodCalls) {
       // hold the Method Name, Scope and if this ccall has a (this.methodName) scope
@@ -93,8 +93,7 @@ public class TransactionalSelfInvocationRule implements Rule {
         // check if the target method has the @Transactional annotation
         boolean hasTransactionalAnnotation =
             targetDeclaration.get().getAnnotations().stream()
-                .anyMatch(
-                    annotationExpr -> hasSupportedTransactionalImport(annotationExpr, imports));
+                .anyMatch(annotationExpr -> isTransactionalAnnotation(annotationExpr, ast));
 
         if (!hasTransactionalAnnotation) continue;
 
@@ -110,37 +109,46 @@ public class TransactionalSelfInvocationRule implements Rule {
   }
 
   // helper method
-  private boolean hasSupportedTransactionalImport(
-      AnnotationExpr annotationExpr, List<ImportDeclaration> imports) {
+  private boolean isTransactionalAnnotation(AnnotationExpr annotationExpr, CompilationUnit ast) {
 
+    // DOES NOT INCLUDE THE '@' SIGN
     String annotationName = annotationExpr.getNameAsString();
 
-    if (SUPPORTED_TRANSACTIONAL_ANNOTATION.contains(annotationName)) {
-      log.info(
-          "Annotation {} is a @Transactional annotation, checking imports for supported annotations.",
-          annotationName);
-      return true;
+    // get all the imports and type declarations from the AST
+    List<ImportDeclaration> imports = ast.findAll(ImportDeclaration.class);
+    var typeDeclarations = ast.findAll(TypeDeclaration.class);
+
+    if (annotationName.contains(".")) {
+      return SUPPORTED_TRANSACTIONAL_ANNOTATION.contains(annotationName);
     }
 
-    log.info(
-        "Annotation {} is a @Transactional annotation, checking imports for supported annotations.",
-        annotationName);
+    if (!annotationName.equals("Transactional")) return false;
 
-    // loop ionto the stream and check for any of the supported imports
-    return imports.stream()
-        .anyMatch(
-            importImpl -> {
-              String importName = importImpl.getNameAsString();
-              log.info("Checking import {} for supported @Transactional annotations.", importName);
+    // get the Type declarations from the AST
+    for (TypeDeclaration<?> t : typeDeclarations) {
+      // if th typeDeclaration is Transaction then return false
+      if (t.getNameAsString().equals("Transactional")) return false;
+    }
 
-              if (!importImpl.isAsterisk()) {
-                log.info(
-                    "Checking import {} for supported @Transactional annotations.", importName);
-                return SUPPORTED_TRANSACTIONAL_ANNOTATION.contains(importName);
-              }
+    // step 4loop into the imports to check for non wildcard imports
+    for (ImportDeclaration imp : imports) {
+      // this is for NON-WILDCARD imports, if static and asterisk skip it
+      if (imp.isAsterisk() || imp.isStatic()) continue;
 
-              return SUPPORTED_TRANSACTIONAL_IMPORTS_ASTERISK.contains(importName);
-            });
+      String importName = imp.getNameAsString();
+      if (importName.endsWith(".Transactional"))
+        return SUPPORTED_TRANSACTIONAL_ANNOTATION.contains(importName);
+    }
+
+    // Step 5 loop into the imports to check for wildcard imports
+    for (ImportDeclaration imp : imports) {
+      // chekl for WILDCARD imports only
+      if (!imp.isAsterisk() || imp.isStatic()) continue;
+
+      if (SUPPORTED_TRANSACTIONAL_IMPORTS_ASTERISK.contains(imp.getNameAsString())) return true;
+    }
+
+    return false;
   }
 
   private Violation createSelfInvocationViolation(MethodCallExpr expr) {

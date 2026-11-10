@@ -1,4 +1,5 @@
 import static core.Constants.CATCH_CLAUSE_RULE_ID;
+import static core.Constants.TRANSACTIONAL_SELF_INVOCATION_RULE_ID;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -6,6 +7,7 @@ import core.Parser;
 import core.Violation;
 import core.rules.EmptyCatchRule;
 import core.rules.Rule;
+import core.rules.TransactionalSelfInvocationRule;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -148,6 +150,203 @@ class LinterEngineTest {
       var violations = analyseWithRule(empCatch, sourceCode);
 
       // should have no violations since there are no catch clauses
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+  }
+
+  @Nested
+  class TransactionalSelfInvocationTests {
+
+    private String sourceCode;
+    private final TransactionalSelfInvocationRule rule = new TransactionalSelfInvocationRule();
+
+    @BeforeEach
+    public void setUp() {
+      sourceCode =
+          """
+              // IMPORTS
+              public class OrderService {
+                void process() {
+                  validate();
+                }
+                // ANNOTATION
+                void validate() {}
+              }
+              // EXTRA_TYPES
+              """;
+    }
+
+    @Test
+    void test_rule_reportsSelfCallToSpringTransactional() {
+      sourceCode =
+          sourceCode
+              .replace(
+                  "// IMPORTS", "import org.springframework.transaction.annotation.Transactional;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(1, violations.size());
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(4, violations.getFirst().getLine());
+    }
+
+    @Test
+    void test_rule_reportsSelfCallToJakartaTransactional() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import jakarta.transaction.Transactional;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(1, violations.size());
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(4, violations.getFirst().getLine());
+    }
+
+    @Test
+    void test_rule_reportsSelfCallToFullyQualifiedSpringTransactional() {
+      sourceCode =
+          sourceCode.replace(
+              "// ANNOTATION", "@org.springframework.transaction.annotation.Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(1, violations.size());
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(4, violations.getFirst().getLine());
+    }
+
+    @Test
+    void test_rule_reportsSelfCallToTransactionalViaSpringWildcardImport() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import org.springframework.transaction.annotation.*;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(1, violations.size());
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(4, violations.getFirst().getLine());
+    }
+
+    @Test
+    void test_rule_reportsSelfCallToTransactionalViaJakartaWildcardImport() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import jakarta.transaction.*;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(1, violations.size());
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(4, violations.getFirst().getLine());
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallToDeprecatedMethodWhenSpringImported() {
+      sourceCode =
+          sourceCode
+              .replace(
+                  "// IMPORTS", "import org.springframework.transaction.annotation.Transactional;")
+              .replace("// ANNOTATION", "@Deprecated");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallToTransactionalWithoutImport() {
+      sourceCode = sourceCode.replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallToCustomTransactional() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import com.mycompany.Transactional;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallWhenCustomSingleTypeImportBeatsSpringWildcard() {
+      sourceCode =
+          sourceCode
+              .replace(
+                  "// IMPORTS",
+                  "import com.mycompany.Transactional; "
+                      + "import org.springframework.transaction.annotation.*;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallWhenFileDeclaresItsOwnTransactionalType() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import org.springframework.transaction.annotation.*;")
+              .replace("// ANNOTATION", "@Transactional")
+              .replace("// EXTRA_TYPES", "@interface Transactional {}");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallToTransactionalFromStaticImport() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import static com.mycompany.Util.Transactional;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallToFullyQualifiedUnsupportedTransactional() {
+      sourceCode = sourceCode.replace("// ANNOTATION", "@com.mycompany.Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresSelfCallToJavaxTransactional() {
+      sourceCode =
+          sourceCode
+              .replace("// IMPORTS", "import javax.transaction.Transactional;")
+              .replace("// ANNOTATION", "@Transactional");
+      var violations = analyseWithRule(rule, sourceCode);
+
+      assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_ignoresTransactionalMethodWhenThereIsNoSelfCall() {
+      sourceCode =
+          sourceCode
+              .replace(
+                  "// IMPORTS", "import org.springframework.transaction.annotation.Transactional;")
+              .replace("// ANNOTATION", "@Transactional")
+              .replace("validate();", "");
+      var violations = analyseWithRule(rule, sourceCode);
+
       assertEquals(0, violations.size());
       assertNoViolation(violations);
     }
