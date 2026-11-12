@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: linter-web-backend
+
+server:
+  port: 8080
+
+logging:
+  level:
+    core: DEBUG
+    com.cs408.linter_web_backend: DEBUG

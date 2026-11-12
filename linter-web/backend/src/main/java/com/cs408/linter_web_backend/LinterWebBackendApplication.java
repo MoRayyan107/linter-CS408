@@ -1,12 +1,12 @@
-package com.cs408.linter;
+package com.cs408.linter_web_backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class LinterApplication {
+public class LinterWebBackendApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(LinterApplication.class, args);
+    SpringApplication.run(LinterWebBackendApplication.class, args);
   }
 }
