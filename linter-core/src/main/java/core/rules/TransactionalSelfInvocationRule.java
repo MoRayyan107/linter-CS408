@@ -10,8 +10,8 @@ import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.resolution.UnsolvedSymbolException;
 import core.Violation;
+import enums.Severity;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -33,77 +33,71 @@ public class TransactionalSelfInvocationRule implements Rule {
     // get all the method calls and imports from the AST
     List<MethodCallExpr> methodCalls = ast.findAll(MethodCallExpr.class);
 
-    for (MethodCallExpr calls : methodCalls) {
-      // hold the Method Name, Scope and if this ccall has a (this.methodName) scope
-      String methodName = calls.getNameAsString();
-      boolean hasScope = calls.getScope().isPresent();
-      boolean hasThisExpr = calls.getScope().map(Expression::isThisExpr).orElse(false);
+    // hold the Method Name, Scope and if this ccall has a (this.methodName) scope
+    for (MethodCallExpr call : methodCalls) {
+      String methodName = call.getNameAsString();
+      boolean hasScope = call.getScope().isPresent();
+      boolean hasThisExpr = call.getScope().map(Expression::isThisExpr).orElse(false);
 
-      if (hasScope && !hasThisExpr) {
-        // if the method call has a scope and the scope is not "this", then we can ignore it
+      if (hasScope && !hasThisExpr) continue;
+
+      //      log.info(
+      //          "Possible this.methodName() call found: {}. Checking for @Transactional
+      // annotation.",
+      //          methodName);
+      //      log.info(
+      //          "Checking for Transactional Annotation for the method call {} with scope {} and
+      // does it have a 'this' scope? {}",
+      //          methodName,
+      //          call.getScope().orElse(null),
+      //          hasThisExpr);
+
+      // gte the caller class
+      var callerClass = call.findAncestor(ClassOrInterfaceDeclaration.class);
+      if (callerClass.isEmpty()) {
+        //        log.info("Caller class not found for method call {}, skipping check.",
+        // methodName);
         continue;
       }
 
-      log.info(
-          "Possible this.methodName() call found: {}. Checking for @Transactional annotation.",
-          methodName);
-      log.info(
-          "Checking for Transactional Annotation for the method call {} with scope {} and does it have a 'this' scope? {}",
-          methodName,
-          calls.getScope().orElse(null),
-          hasThisExpr);
+      // Sine Interfaces cant have a body like physical logic code we do not need to check for any
+      // interface classes
+      if (callerClass.get().isInterface()) {
+        log.info("Caller class is an interface for method call {}, skipping check.", methodName);
+        continue;
+      }
 
-      try {
-        // resolve the method call to get the target method declaration
-        var targetMethod = calls.resolve();
+      // get the List of MethodDeclarations from the calls
+      var arguments = call.getArguments().size();
+      //      log.info(
+      //          "Method call {} has {} arguments. Checking for matching method declarations.",
+      //          methodName,
+      //          arguments);
+      List<MethodDeclaration> declarationList =
+          callerClass.get().getMethods().stream()
+              .filter(methodParams -> methodParams.getParameters().size() == arguments)
+              .filter(nameOfMethod -> nameOfMethod.getNameAsString().equals(methodName))
+              .filter(checkStatic -> !checkStatic.isStatic())
+              .toList();
 
-        // skip the check if the target method is static, as static methods cannot be annotated with
-        // @Transactional
-        if (targetMethod.isStatic()) {
-          log.info("Method call {} is static, skipping @Transactional check.", methodName);
-          continue;
-        }
-
-        // store the target class name
-        var targetClassName = targetMethod.declaringType().getQualifiedName();
-
-        var callerClass = calls.findAncestor(ClassOrInterfaceDeclaration.class);
-        if (callerClass.isEmpty()) {
-          log.info("Caller class not found for method call {}, skipping check.", methodName);
-          continue;
-        }
-
-        var callerClassName = callerClass.get().resolve().getQualifiedName();
-
-        // chek if the caller/target are empty and if they are not equal, then we can ignore it
-        if (!targetClassName.equals(callerClassName)) {
-          log.info("Either target class or caller class is empty, skipping check.");
-          continue;
-        }
-
+      if (declarationList.isEmpty()) {
         log.info(
-            "Checking @Transactional annotation for method {} in class {}",
-            methodName,
-            targetClassName);
-
-        // get the TargetDeclaration of the Method
-        var targetDeclaration = targetMethod.toAst(MethodDeclaration.class);
-        if (targetDeclaration.isEmpty()) continue;
-
-        // check if the target method has the @Transactional annotation
-        boolean hasTransactionalAnnotation =
-            targetDeclaration.get().getAnnotations().stream()
-                .anyMatch(annotationExpr -> isTransactionalAnnotation(annotationExpr, ast));
-
-        if (!hasTransactionalAnnotation) continue;
-
-      } catch (UnsolvedSymbolException e) {
-        log.error("Error occurred while resolving method call: {}", calls, e);
+            "No matching method declarations found for method call {}, skipping check.",
+            methodName);
         continue;
       }
+
+      boolean hasTransactionalAnnotation =
+          declarationList.stream()
+              .anyMatch(
+                  methods ->
+                      methods.getAnnotations().stream()
+                          .anyMatch(annotation -> isTransactionalAnnotation(annotation, ast)));
+
+      if (!hasTransactionalAnnotation) continue;
 
       // if reached till herer we definetly havea  violation
-      violations.add(createSelfInvocationViolation(calls));
+      violations.add(createSelfInvocationViolation(call));
     }
     return violations;
   }
@@ -118,9 +112,8 @@ public class TransactionalSelfInvocationRule implements Rule {
     List<ImportDeclaration> imports = ast.findAll(ImportDeclaration.class);
     var typeDeclarations = ast.findAll(TypeDeclaration.class);
 
-    if (annotationName.contains(".")) {
+    if (annotationName.contains("."))
       return SUPPORTED_TRANSACTIONAL_ANNOTATION.contains(annotationName);
-    }
 
     if (!annotationName.equals("Transactional")) return false;
 
@@ -130,7 +123,6 @@ public class TransactionalSelfInvocationRule implements Rule {
       if (t.getNameAsString().equals("Transactional")) return false;
     }
 
-    // step 4loop into the imports to check for non wildcard imports
     for (ImportDeclaration imp : imports) {
       // this is for NON-WILDCARD imports, if static and asterisk skip it
       if (imp.isAsterisk() || imp.isStatic()) continue;
@@ -148,6 +140,7 @@ public class TransactionalSelfInvocationRule implements Rule {
       if (SUPPORTED_TRANSACTIONAL_IMPORTS_ASTERISK.contains(imp.getNameAsString())) return true;
     }
 
+    // if nothing matches then return false
     return false;
   }
 
@@ -155,7 +148,7 @@ public class TransactionalSelfInvocationRule implements Rule {
     return new Violation(
         TRANSACTIONAL_SELF_INVOCATION_RULE_ID,
         "Method call to a @Transactional method from within the same class.",
-        enums.Severity.WARNING,
+        Severity.WARNING,
         expr.getBegin().map(p -> p.line).orElse(-1),
         expr.getBegin().map(p -> p.column).orElse(-1),
         "Consider refactoring the code to avoid self-invocation of @Transactional methods.");
