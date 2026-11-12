@@ -1,10 +1,10 @@
-package com.cs408.linter;
+package com.cs408.linter_web_backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class LinterApplicationTests {
+class LinterWebBackendApplicationTests {
 
   @Test
   void contextLoads() {}
