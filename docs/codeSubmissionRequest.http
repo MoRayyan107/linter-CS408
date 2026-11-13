@@ -1,0 +1,201 @@
+POST http://localhost:8080//api/code-submission/submit
+content-type: text/plain
+
+import org.springframework.transaction.annotation.*; // wildcard import -> simple @Transactional resolves to Spring
+
+public class Example {
+
+    private final TransactionUtil transactionUtil = new TransactionUtil();
+
+    // =====================================================================
+    // RULE 1 - RECEIVER                                       -> 3 violations
+    // =====================================================================
+    public void receiverCases(String ref) {
+        updateRiskScore(0.5);                               // FLAG  - no receiver
+        this.updateRiskScore(0.9);                          // FLAG  - plain `this`
+        Example.this.updateRiskScore(0.9);                  // FLAG  - qualified `this` is still a ThisExpr
+
+        transactionUtil.getTransactionByReference(ref);     // ALLOW - receiver is another bean (goes through proxy)
+        this.transactionUtil.getTransactionByReference(ref);// ALLOW - receiver is a field, not `this`
+        Example self = this;
+        self.updateRiskScore(1.0);                          // ALLOW - alias for `this` is out of scope for V1
+        Example.cleanup();                                  // ALLOW - static, class-name receiver
+        super.toString();                                   // ALLOW - `super` receiver
+    }
+
+    // =====================================================================
+    // RULE 2 - TARGET RESOLUTION (same class, name + arg count, non-static)
+    //                                                          -> 3 violations
+    // =====================================================================
+    public void targetCases(String ref) {
+        recover(ref);                                       // FLAG  - selects the 1-arg @Transactional overload
+        recover(ref, 3);                                    // ALLOW - selects the 2-arg overload, not annotated
+        validateTransaction(ref);                           // ALLOW - same class but not @Transactional
+        cleanup();                                          // ALLOW - target is static (no proxy involved)
+        notDeclaredHere();                                  // ALLOW - no declaration in this class (e.g. inherited)
+
+        log("message");                                     // FLAG  - 1-arg log(String) is @Transactional
+        log(42);                                            // FLAG  - KNOWN FALSE POSITIVE: matching is by
+                                                            //         arity only, so log(int) is also matched
+    }
+
+    // =====================================================================
+    // RULE 3 - ANNOTATION                                      -> 3 violations
+    // =====================================================================
+    public void annotationCases() {
+        springFullyQualified();                             // FLAG  - @org.springframework...Transactional
+        jakartaFullyQualified();                            // FLAG  - @jakarta.transaction.Transactional
+        springViaWildcardImport();                          // FLAG  - simple @Transactional + wildcard import
+
+        customTransactional();                              // ALLOW - @com.example.audit.Transactional (not Spring/Jakarta)
+        unrelatedAnnotation();                              // ALLOW - annotated, but not @Transactional
+    }
+
+    // =====================================================================
+    // CALLER CONTEXT - where the call sits inside the class    -> 2 violations
+    // =====================================================================
+    public void callerContextCases() {
+        for (int i = 0; i < 3; i++) {
+            updateRiskScore(i);                             // FLAG  - inside a loop
+        }
+        Runnable r = () -> auditTrail();                    // FLAG  - inside a lambda
+        r.run();                                            // ALLOW - receiver is `r`
+    }
+
+    // =====================================================================
+    // EMPTY CATCH CLAUSE                                       -> 4 violations
+    // =====================================================================
+    public void catchClauseCases(String input) {
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException e) {                 // FLAG  - empty body
+        }
+
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException e) {                 // FLAG  - comment only, comments are not statements
+            // TODO handle this later
+        }
+
+        try {
+            Class.forName(input).getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException | IllegalArgumentException e) { // FLAG - empty multi-catch
+        }
+
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException e) {                 // ALLOW - outer catch has a body...
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ex) {             // FLAG  - ...but the nested catch is empty
+            }
+        }
+
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException ignored) {           // ALLOW - variable named `ignored`
+        }
+
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException IGNORE) {            // ALLOW - `ignore`, case-insensitive match
+        }
+
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException e) {                 // ALLOW - has a body
+            System.err.println("Invalid number: " + e.getMessage());
+        }
+
+        try {
+            Integer.parseInt(input);
+        } catch (NumberFormatException e) {                 // ALLOW - KNOWN FALSE NEGATIVE: a lone `;` is an
+            ;                                               //         EmptyStmt, which counts as a statement
+        }
+    }
+
+    // =====================================================================
+    // TARGET METHODS
+    // =====================================================================
+
+    // Caller annotation does not matter, a @Transactional -> @Transactional self-call is still flagged
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateRiskScore(double score) {
+        System.out.println("Score: " + score);
+        auditTrail();                                       // FLAG  - 1 violation
+    }
+
+    @jakarta.transaction.Transactional
+    public void auditTrail() {
+        System.out.println("Audit trail recorded");
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recover(String ref) { }
+
+    public void recover(String ref, int retries) { }
+
+    public void validateTransaction(String ref) { }
+
+    @Transactional
+    public static void cleanup() { }
+
+    @Transactional
+    public void log(String message) { }
+
+    public void log(int code) { }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void springFullyQualified() { }
+
+    @jakarta.transaction.Transactional
+    public void jakartaFullyQualified() { }
+
+    @Transactional(readOnly = true)
+    public void springViaWildcardImport() { }
+
+    @com.example.audit.Transactional
+    public void customTransactional() { }
+
+    @Deprecated
+    public void unrelatedAnnotation() { }
+
+    // =====================================================================
+    // NESTED TYPES - the nearest enclosing class/interface is used  -> 0 violations
+    // =====================================================================
+
+    // Inner class: updateRiskScore is declared on the OUTER class, so it is not resolved (V1 limitation)
+    class Helper {
+        void run() {
+            updateRiskScore(2.0);                           // ALLOW - not declared in Helper
+        }
+    }
+
+    // Interfaces are skipped entirely
+    interface Auditable {
+        @Transactional
+        void audit();
+
+        default void auditTwice() {
+            audit();                                        // ALLOW - caller is an interface
+        }
+    }
+}
+
+// Separate bean - calls INTO it from Example go through the Spring proxy
+class TransactionUtil {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public String getTransactionByReference(String ref) {
+        return ref;
+    }
+}
+
+// Class-level @Transactional is out of scope for V1 -> 0 violations
+@Transactional
+class ClassLevelService {
+    public void outer() {
+        inner();                                            // ALLOW - inner() has no method-level annotation
+    }
+
+    public void inner() { }
+}

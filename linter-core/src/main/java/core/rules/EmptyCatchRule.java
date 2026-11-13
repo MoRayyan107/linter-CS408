@@ -20,6 +20,13 @@ public class EmptyCatchRule implements Rule {
     return checkCatchClause(violations, ast);
   }
 
+  /**
+   * This check is for the catch clause rule, where it checks if the catch clause has an empty body and if the variable name is not ignored
+   *
+   * @param violations a list that will be added to if a violation is found
+   * @param ast the source code tree (AST) that will be worked through to find the catch clauses
+   * @return a list of {@link Violation} objects representing the violations found in the catch clauses
+   */
   private List<Violation> checkCatchClause(List<Violation> violations, CompilationUnit ast) {
     // first get the name of the variable, and body of the catch clause
     var catchClause = ast.findAll(CatchClause.class);
@@ -45,6 +52,12 @@ public class EmptyCatchRule implements Rule {
     return violations;
   }
 
+  /**
+   * This method creates a Violation object for an empty catch clause.
+   *
+   * @param catches the catch clause that is being checked for violations
+   * @return a {@link Violation} object representing the empty catch clause violation
+   */
   private Violation createCatchClauseViolation(CatchClause catches) {
     return new Violation(
         CATCH_CLAUSE_RULE_ID,

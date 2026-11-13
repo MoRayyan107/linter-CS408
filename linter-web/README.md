@@ -1,8 +1,28 @@
-# Linter Web Backend
+# Linter Web
 
-This module contains the Spring Boot application scaffold for the web interface.
-It does not yet expose a linting API or integrate the core analysis engine.
-An HTTP server and linting endpoints are not currently configured.
+The web interface for the linter: a Spring Boot backend (`backend/`) and a
+React + Vite frontend (`frontend/`).
+
+## Status
+
+- **Backend:** set up. It calls the core engine (`linter-core`) on submitted
+  Java source and returns the violations as JSON.
+- **Output format:** the response is the raw `List<Violation>`. A clearer,
+  more readable output format is planned.
+- **Frontend:** only a scaffold for now. It is not connected to the backend
+  yet and will be implemented later.
+
+## API
+
+`POST /api/code-submission/submit` (port 8080)
+
+The request body is raw Java source. The response is a JSON array of
+violations. Each violation has 1-based line and column numbers.
+
+If the source can't be parsed, the response is an empty array, so an empty
+result doesn't prove the code is valid.
+
+Example requests are in [`docs/codeSubmissionRequest.http`](../docs/codeSubmissionRequest.http).
 
 ## Requirements
 
@@ -10,18 +30,21 @@ JDK 21 and Maven.
 
 ## Build, test, and run
 
-Run these commands from the repository root:
+Run these commands from the repository root. The backend depends on
+`linter-core`, so install the core module first:
 
 ```bash
+# Install the root and core POMs to ~/.m2
+mvn -q install -pl linter-core -am -DskipTests
+
 # Build, test, and check formatting
 mvn -pl linter-web/backend clean verify
 
-# Run the application entry point
+# Start the backend on port 8080
 mvn -pl linter-web/backend spring-boot:run
 ```
 
-The run command starts the current application scaffold; it does not provide a
-web API. Application configuration is in `src/main/resources/application.yaml`.
+Application configuration is in `backend/src/main/resources/application.yaml`.
 
 ## Formatting
 
@@ -37,4 +60,4 @@ make it inherit the root's plugin configuration.
 
 The backend is included in the repository's Java build, test, and formatting
 checks, and in the Java CodeQL configuration. See the
-[main README](../../README.md) for workflow triggers and test reports.
+[main README](../README.md) for workflow triggers and test reports.

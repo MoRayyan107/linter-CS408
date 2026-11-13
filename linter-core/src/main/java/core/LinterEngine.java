@@ -25,10 +25,12 @@ public class LinterEngine {
    * Analyzes the code and returns a list of violations found.
    *
    * @param input The Java source code as a string.
-   * @return list of violations found.
+   * @return list of violations found. (a non-null object)
    */
+
+  // TODO: Users can select which rule they can use so, there should be a way to mark which is selected and
+  //  which is not and then pass through the selected rules and then add to violations
   public List<Violation> analyse(String input) {
-    // returns a non-null object of type ParseResult<CompilationUnit> (AST)
 
     ParseResult<CompilationUnit> parsedRes = parser.parse(input);
     List<Violation> violations = new ArrayList<>();

@@ -17,3 +17,7 @@ graphify-out/
 
 ## any example Java files in the docs folder
 docs/*.java
+
+#3 claude md
+CLAUDE.md
+.claude

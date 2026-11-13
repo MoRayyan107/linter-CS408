@@ -1,0 +1,6 @@
+# Keep test code out of the knowledge graph
+**/src/test/
+
+# Default Vite/React scaffold assets (no project meaning)
+linter-web/frontend/public/
+linter-web/frontend/src/assets/
