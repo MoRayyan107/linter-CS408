@@ -6,10 +6,6 @@ import org.springframework.transaction.annotation.*; // wildcard import -> simpl
 public class Example {
 
     private final TransactionUtil transactionUtil = new TransactionUtil();
-
-    // =====================================================================
-    // RULE 1 - RECEIVER                                       -> 3 violations
-    // =====================================================================
     public void receiverCases(String ref) {
         updateRiskScore(0.5);                               // FLAG  - no receiver
         this.updateRiskScore(0.9);                          // FLAG  - plain `this`
@@ -198,4 +194,31 @@ class ClassLevelService {
     }
 
     public void inner() { }
+}
+
+### New Request ( cehckl for overlaoded methods should have one warning based on the input below)
+POST http://localhost:8080//api/code-submission/submit
+content-type: text/plain
+
+
+import org.springframework.transaction.annotation.*; // wildcard import -> simple @Transactional resolves to Spring
+
+public class Example {
+
+    // overlaod example
+    // violation made -> 1
+
+    public void process() {
+        makeSomeProcess(1L);            // should flag since its a this. method call
+        makeSomeProcess("SomeString");  // not to be falgged no @Transactional annotaion is made
+    }
+
+    @Transactional
+    public void makeSomeProcess(Long id) {
+        // some processing logic
+    }
+
+    public void makeSomeProcess(String name) {
+        // some processing logic
+    }
 }

@@ -5,10 +5,12 @@ import com.github.javaparser.ast.CompilationUnit;
 import core.rules.*;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /***
  * LinterEngine, this cclass contains teh main logicc for linter engine
  */
+@Slf4j
 public class LinterEngine {
 
   private final Parser parser;
@@ -28,7 +30,8 @@ public class LinterEngine {
    * @return list of violations found. (a non-null object)
    */
 
-  // TODO: Users can select which rule they can use so, there should be a way to mark which is selected and
+  // TODO: Users can select which rule they can use so, there should be a way to mark which is
+  //  selected and
   //  which is not and then pass through the selected rules and then add to violations
   public List<Violation> analyse(String input) {
 
@@ -37,7 +40,7 @@ public class LinterEngine {
 
     // check if teh the parsed result is successful
     if (!parsedRes.isSuccessful() || parsedRes.getResult().isEmpty()) {
-      System.err.println("Parsing failed with problems: " + parsedRes.getProblems());
+      log.error("Parsing failed with problems: {}", parsedRes.getProblems());
       return violations;
     }
 

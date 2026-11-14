@@ -21,29 +21,28 @@ public class EmptyCatchRule implements Rule {
   }
 
   /**
-   * This check is for the catch clause rule, where it checks if the catch clause has an empty body and if the variable name is not ignored
+   * This check is for the catch clause rule, where it checks if the catch clause has an empty body
+   * and if the variable name is not ignored
    *
    * @param violations a list that will be added to if a violation is found
    * @param ast the source code tree (AST) that will be worked through to find the catch clauses
-   * @return a list of {@link Violation} objects representing the violations found in the catch clauses
+   * @return a list of {@link Violation} objects representing the violations found in the catch
+   *     clauses
    */
   private List<Violation> checkCatchClause(List<Violation> violations, CompilationUnit ast) {
-    // first get the name of the variable, and body of the catch clause
     var catchClause = ast.findAll(CatchClause.class);
 
     for (var catches : catchClause) {
+
       String variableName = catches.getParameter().getNameAsString();
-      // true if the catch clause has a body, false if it is empty
       boolean catchBodyIsEmpty = catches.getBody().getStatements().isEmpty();
 
-      // first check if the variable is ignored
       if (variableName.equalsIgnoreCase("ignore") || variableName.equalsIgnoreCase("ignored")) {
         // no violation is done
-        log.info("Catch clause variable is ignored, no violations found.");
+        log.debug("Catch clause variable is ignored, no violations found.");
         continue;
       } else if (!catchBodyIsEmpty) {
-        // body exists and no variable is named as ignore, so no violations found
-        log.info("Catch clause has a body and variable is not ignored, no violations found.");
+        log.debug("Catch clause has a body and variable is not ignored, no violations found.");
         continue;
       }
       // create a new Violation
