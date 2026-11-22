@@ -159,6 +159,7 @@ class LinterEngineTest {
   class TransactionalSelfInvocationTests {
 
     private String sourceCode;
+    private String nestedClassCode;
     private final TransactionalSelfInvocationRule rule = new TransactionalSelfInvocationRule();
 
     @BeforeEach
@@ -172,8 +173,29 @@ class LinterEngineTest {
                 }
                 // ANNOTATION
                 void validate() {}
+
               }
               // EXTRA_TYPES
+              """;
+
+      nestedClassCode =
+          """
+                  import org.springframework.transaction.annotation.*;
+                  public class OuterClass {
+
+                    // OUTER ANNOTATION
+                    public void foo() {
+                      // ANY CALLS
+                    }
+
+                    class InnerClass {
+                      public void bar() {
+                        // ADD INNER CODE
+                      }
+
+                      // ADD INNER METHODS
+                    }
+                  }
               """;
     }
 
@@ -348,6 +370,230 @@ class LinterEngineTest {
       var violations = analyseWithRule(rule, sourceCode);
 
       assertEquals(0, violations.size());
+      assertNoViolation(violations);
+    }
+
+    // TODO: fix this test case, FAILED ON PURPOSE, but should be allowed
+    @Test
+    void test_rule_reportViolationForOverloadedMethods() {
+      int expectedViolationSize = 1;
+      String overloadedCode =
+          """
+              import org.springframework.transaction.annotation.*;
+              public class OrderService {
+
+                public void process() {
+                  validate(23);    // Should NOT Violate
+                  validate("abc"); // Should Violate
+                }
+
+                @Transactional
+                public void validate(String ref) {}
+
+                public void validate(int refNum) {}
+              }
+              """;
+
+      var violations = analyseWithRule(rule, overloadedCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(expectedViolationSize, violations.size());
+    }
+
+    // TODO: fix this test case, FAILED ON PURPOSE, but should be allowed
+    @Test
+    void test_rule_ignoresThisCallInsideAnonymousClass() {
+      int expectedViolationSize = 0;
+      String anonymousClassCode =
+          """
+              import org.springframework.transaction.annotation.*;
+              public class OrderService {
+
+                public void process() {
+                  Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                      validate(); // Should NOT Violate
+                    }
+
+                    private void validate() {
+                        System.out.println("Inside anonymous class");
+                    }
+                  };
+                  r.run();
+                }
+
+                @Transactional
+                public void validate() {}
+              }
+              """;
+
+      var violations = analyseWithRule(rule, anonymousClassCode);
+      assertEquals(expectedViolationSize, violations.size());
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_rule_reportsOuterThisCallFromInnerClass() {
+      int violationsExpected = 1;
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace("// ADD INNER CODE", "OuterClass.this.foo(); // Should Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(violationsExpected, violations.size());
+    }
+
+    @Test
+    void test_innerHasNonTransactionalFoo_outerTransactional_flags() {
+      int violationsExpected = 1;
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace("// ADD INNER CODE", "OuterClass.this.foo(); // Should Violate")
+              .replace("// ADD INNER METHODS", "public void foo() {} ");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(violationsExpected, violations.size());
+    }
+
+    // TODO: FAILED ON PURPOSE until Outer.this resolves to the named class
+    @Test
+    void test_innerHasTransactionalFoo_outerNotTransactional_noFlag() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// ADD INNER CODE", "OuterClass.this.foo(); // Should NOT Violate")
+              .replace("// ADD INNER METHODS", "@Transactional public void foo() {}");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertNoViolation(violations);
+    }
+
+    // TODO: FAILED ON PURPOSE until Outer.this resolves to the named class
+    @Test
+    void test_lambdaInInner_outerThis_flags() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace(
+                  "// ADD INNER CODE",
+                  "Runnable r = () -> OuterClass.this.foo(); // Should Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(1, violations.size());
+    }
+
+    // TODO: FAILED ON PURPOSE until Outer.this resolves to the named class
+    @Test
+    void test_anonymousClassInInner_outerThis_flags() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace(
+                  "// ADD INNER CODE",
+                  "new Runnable() { public void run() { OuterClass.this.foo(); } }; // Should"
+                      + " Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(1, violations.size());
+    }
+
+    // TODO: FAILED ON PURPOSE until Outer.this resolves to the named class
+    @Test
+    void test_localClass_outerThis_flags() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace(
+                  "// ANY CALLS",
+                  "class Local { void run() { OuterClass.this.foo(); } } // Should Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(1, violations.size());
+    }
+
+    // TODO: FAILED ON PURPOSE until Outer.this resolves to the named class
+    @Test
+    void test_twoLevelNesting_outerThis_flags() {
+      String code =
+          """
+          import org.springframework.transaction.annotation.*;
+          public class OuterClass {
+            @Transactional
+            public void foo() {}
+
+            class Mid {
+              class Inner {
+                void bar() { OuterClass.this.foo(); } // Should Violate
+              }
+            }
+          }
+          """;
+      var violations = analyseWithRule(rule, code);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(1, violations.size());
+    }
+
+    // TODO: FAILED ON PURPOSE until Outer.this resolves to the named class
+    @Test
+    void test_twoLevelNesting_midThis_flags() {
+      String code =
+          """
+          import org.springframework.transaction.annotation.*;
+          public class OuterClass {
+            class Mid {
+              @Transactional
+              public void foo() {}
+
+              class Inner {
+                void bar() { Mid.this.foo(); } // Should Violate
+              }
+            }
+          }
+          """;
+      var violations = analyseWithRule(rule, code);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(1, violations.size());
+    }
+
+    // ---- should already pass ----
+
+    @Test
+    void test_outerThisFromInner_outerNotTransactional_noFlag() {
+      nestedClassCode =
+          nestedClassCode.replace(
+              "// ADD INNER CODE", "OuterClass.this.foo(); // Should NOT Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_outerThisDirectlyInOuter_flags() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace("// ANY CALLS", "OuterClass.this.foo(); // Should Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertViolation(violations, TRANSACTIONAL_SELF_INVOCATION_RULE_ID);
+      assertEquals(1, violations.size());
+    }
+
+    @Test
+    void test_outerThisFromInner_arityMismatch_noFlag() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional public void foo(int x) {}")
+              .replace("// ADD INNER CODE", "OuterClass.this.foo(); // Should NOT Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
+      assertNoViolation(violations);
+    }
+
+    @Test
+    void test_outerThisFieldReceiver_noFlag() {
+      nestedClassCode =
+          nestedClassCode
+              .replace("// OUTER ANNOTATION", "@Transactional")
+              .replace("// ADD INNER CODE", "OuterClass.this.helper.foo(); // Should NOT Violate");
+      var violations = analyseWithRule(rule, nestedClassCode);
       assertNoViolation(violations);
     }
   }

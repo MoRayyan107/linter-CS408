@@ -41,7 +41,7 @@ public class TransactionalSelfInvocationRule implements Rule {
       List<MethodDeclaration> candidates = findCandidates(callerClass.get(), call);
       if (candidates.isEmpty()) continue;
 
-      if (candidates.stream().allMatch(method -> isTransactional(method, ast))) {
+      if (candidates.stream().anyMatch(method -> isTransactional(method, ast))) {
         violations.add(createSelfInvocationViolation(call));
       }
     }
