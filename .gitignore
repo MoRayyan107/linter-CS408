@@ -22,6 +22,7 @@ docs/*.java
 CLAUDE.md
 .claude
 
-##
+## additional files to ignore
 Fixes.md
 docs/rule-cases.md
+Additions.md
